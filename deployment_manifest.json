@@ -1,0 +1,12 @@
+{
+  "project": "Enterprise Knowledge Intelligence",
+  "api": "FastAPI",
+  "vector_database": "FAISS",
+  "embedding_model": "text-embedding-3-small",
+  "generation_model": "gpt-5-mini",
+  "documents": 2,
+  "vector_records": 7,
+  "vector_dimensions": 1536,
+  "deployment_target": "Render",
+  "status": "READY"
+}
