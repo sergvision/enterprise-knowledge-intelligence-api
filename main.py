@@ -55,6 +55,7 @@ app.add_middleware(
     allow_origins=[
         "https://healthsportvoyageai.com",
         "https://www.healthsportvoyageai.com"
+        "https://sergvision.github.io"
     ],
     allow_credentials=True,
     allow_methods=["*"],
