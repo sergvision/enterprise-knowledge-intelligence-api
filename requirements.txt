@@ -1,6 +1,8 @@
+
 fastapi
 uvicorn[standard]
 openai
 faiss-cpu
 numpy
 pydantic
+pytest>=8.0,<9.0
