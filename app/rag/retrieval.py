@@ -1,3 +1,4 @@
+
 """
 Semantic retrieval module for Enterprise Knowledge Intelligence.
 
@@ -6,6 +7,7 @@ knowledge-base chunks for a user question.
 """
 
 from typing import Any
+import pickle
 
 import faiss
 import numpy as np
@@ -20,29 +22,33 @@ class EnterpriseRetriever:
         vectors_path: str,
         top_k: int = 3,
     ) -> None:
+
+        if top_k < 1:
+            raise ValueError("top_k must be at least 1.")
+
         self.index_path = index_path
         self.vectors_path = vectors_path
         self.top_k = top_k
 
-        if self.top_k < 1:
-            raise ValueError("top_k must be at least 1.")
-
+        # Load FAISS index
         self.index = faiss.read_index(self.index_path)
 
-        import pickle
-
+        # Load metadata associated with indexed vectors
         with open(self.vectors_path, "rb") as file:
             self.vectors = pickle.load(file)
 
         if self.index.ntotal != len(self.vectors):
             raise ValueError(
-                "FAISS index size does not match vector metadata size."
+                "FAISS index and metadata count mismatch."
             )
 
-    def retrieve(self, query_embedding: list[float]) -> list[dict[str, Any]]:
-        """Return the most relevant knowledge chunks."""
+    def retrieve(
+        self,
+        query_embedding: list[float],
+    ) -> list[dict[str, Any]]:
+        """Retrieve the most relevant knowledge chunks."""
 
-        if not query_embedding:
+        if not isinstance(query_embedding, list) or not query_embedding:
             raise ValueError("Query embedding cannot be empty.")
 
         query_vector = np.asarray(
@@ -51,7 +57,14 @@ class EnterpriseRetriever:
         )
 
         if query_vector.shape[1] != self.index.d:
-            raise ValueError("Query embedding dimension mismatch.")
+            raise ValueError(
+                "Query embedding dimension mismatch."
+            )
+
+        if not np.isfinite(query_vector).all():
+            raise ValueError(
+                "Query embedding contains invalid values."
+            )
 
         faiss.normalize_L2(query_vector)
 
@@ -60,7 +73,10 @@ class EnterpriseRetriever:
         if actual_k == 0:
             return []
 
-        similarities, indices = self.index.search(query_vector, actual_k)
+        similarities, indices = self.index.search(
+            query_vector,
+            actual_k,
+        )
 
         results = []
 
@@ -85,3 +101,23 @@ class EnterpriseRetriever:
             )
 
         return results
+
+    def retrieve_question(
+        self,
+        question: str,
+        embedding_service: Any,
+    ) -> list[dict[str, Any]]:
+        """
+        Generate a query embedding and retrieve relevant chunks.
+        """
+
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("Question cannot be empty.")
+
+        query_vector = embedding_service.create_embedding(
+            question.strip()
+        )
+
+        query_embedding = query_vector.flatten().tolist()
+
+        return self.retrieve(query_embedding)
